@@ -10,9 +10,17 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
       <main className="mx-auto max-w-4xl px-6 py-12">
-        <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
-          Temps a Catalunya
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
+            Temps a Catalunya
+          </h1>
+          <Link
+            href="/satelits"
+            className="text-sm font-medium text-zinc-600 hover:underline dark:text-zinc-400"
+          >
+            Satèl·lits →
+          </Link>
+        </div>
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">
           Dades de les estacions meteorològiques de la XEMA (Meteocat).
         </p>
