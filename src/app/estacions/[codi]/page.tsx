@@ -14,7 +14,7 @@ export default async function EstacioPage({
   if (!estacio) {
     notFound();
   }
-  const lectures = await getUltimesLectures(codi);
+  const { lectures, mock: mockMode } = await getUltimesLectures(codi);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
@@ -29,6 +29,13 @@ export default async function EstacioPage({
         <p className="text-zinc-600 dark:text-zinc-400">
           {estacio.municipi}, {estacio.comarca} · {estacio.altitud} m · codi {estacio.codi}
         </p>
+
+        {mockMode && (
+          <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+            Mostrant dades d&apos;exemple: no s&apos;han pogut obtenir lectures reals de Meteocat en
+            aquest moment.
+          </div>
+        )}
 
         <div className="mt-8 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
           <table className="w-full text-left text-sm">

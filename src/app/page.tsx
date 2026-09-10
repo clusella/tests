@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { getEstacions, getUsingMockData } from "@/lib/meteocat";
+import { getEstacions } from "@/lib/meteocat";
 
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [estacions, mockMode] = await Promise.all([getEstacions(), getUsingMockData()]);
+  const { estacions, mock: mockMode } = await getEstacions();
   const comarques = Array.from(new Set(estacions.map((e) => e.comarca))).sort();
 
   return (

@@ -10,6 +10,18 @@ export type Estacio = {
   coordenades: { latitud: number; longitud: number };
 };
 
+// Forma real de la resposta de /xema/v1/estacions/metadades: comarca i
+// municipi són objectes { codi, nom }, no cadenes de text.
+type EstacioApi = {
+  codi: string;
+  nom: string;
+  tipus: string;
+  altitud: number;
+  coordenades: { latitud: number; longitud: number };
+  municipi?: { codi: string; nom: string };
+  comarca?: { codi: string; nom: string };
+};
+
 export type Lectura = {
   variableCodi: number;
   nomVariable: string;
@@ -100,55 +112,87 @@ function mockLectures(codi: string): Lectura[] {
   ];
 }
 
-export async function getUsingMockData() {
-  return !hasApiKey();
-}
+export type EstacionsResult = { estacions: Estacio[]; mock: boolean; error?: string };
 
-export async function getEstacions(): Promise<Estacio[]> {
+export async function getEstacions(): Promise<EstacionsResult> {
   if (!hasApiKey()) {
-    return MOCK_ESTACIONS;
+    return { estacions: MOCK_ESTACIONS, mock: true };
   }
-  return meteocatFetch<Estacio[]>("/xema/v1/estacions/metadades", 60 * 60 * 6);
+  try {
+    const estacions = await meteocatFetch<EstacioApi[]>("/xema/v1/estacions/metadades", 60 * 60 * 6);
+    return {
+      estacions: estacions.map((e) => ({
+        codi: e.codi,
+        nom: e.nom,
+        tipus: e.tipus,
+        altitud: e.altitud,
+        coordenades: e.coordenades,
+        comarca: e.comarca?.nom ?? "Sense comarca",
+        municipi: e.municipi?.nom ?? "Sense municipi",
+      })),
+      mock: false,
+    };
+  } catch (err) {
+    console.error("Error consultant l'API de Meteocat, es mostren dades d'exemple:", err);
+    return {
+      estacions: MOCK_ESTACIONS,
+      mock: true,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
 }
 
 export async function getEstacio(codi: string): Promise<Estacio | undefined> {
-  const estacions = await getEstacions();
+  const { estacions } = await getEstacions();
   return estacions.find((e) => e.codi === codi);
 }
 
-type MesuradaResponse = {
-  codi: string;
-  variables: {
-    codi: number;
-    lectures: { data: string; valor: number }[];
-  }[];
+type VariableMesurada = {
+  codi: number;
+  lectures: { data: string; valor: number }[];
 };
 
-export async function getUltimesLectures(codi: string): Promise<Lectura[]> {
+// L'endpoint pot retornar directament un array de variables, o un objecte
+// { codi, variables: [...] }; acceptem totes dues formes.
+type MesuradaResponse = VariableMesurada[] | { codi: string; variables: VariableMesurada[] };
+
+export type LecturesResult = { lectures: Lectura[]; mock: boolean; error?: string };
+
+export async function getUltimesLectures(codi: string): Promise<LecturesResult> {
   if (!hasApiKey()) {
-    return mockLectures(codi);
+    return { lectures: mockLectures(codi), mock: true };
   }
-  const now = new Date();
-  const any = now.getFullYear();
-  const mes = String(now.getMonth() + 1).padStart(2, "0");
-  const dia = String(now.getDate()).padStart(2, "0");
-  const data = await meteocatFetch<MesuradaResponse>(
-    `/xema/v1/estacions/mesurades/${codi}/${any}/${mes}/${dia}`,
-    60 * 10,
-  );
-  const lectures: Lectura[] = [];
-  for (const variable of data.variables ?? []) {
-    const info = VARIABLES[variable.codi];
-    const ultima = variable.lectures?.at(-1);
-    if (info && ultima) {
-      lectures.push({
-        variableCodi: variable.codi,
-        nomVariable: info.nom,
-        unitat: info.unitat,
-        valor: ultima.valor,
-        dataLectura: ultima.data,
-      });
+  try {
+    const now = new Date();
+    const any = now.getFullYear();
+    const mes = String(now.getMonth() + 1).padStart(2, "0");
+    const dia = String(now.getDate()).padStart(2, "0");
+    const data = await meteocatFetch<MesuradaResponse>(
+      `/xema/v1/estacions/mesurades/${codi}/${any}/${mes}/${dia}`,
+      60 * 10,
+    );
+    const variables = Array.isArray(data) ? data : (data.variables ?? []);
+    const lectures: Lectura[] = [];
+    for (const variable of variables) {
+      const info = VARIABLES[variable.codi];
+      const ultima = variable.lectures?.at(-1);
+      if (info && ultima) {
+        lectures.push({
+          variableCodi: variable.codi,
+          nomVariable: info.nom,
+          unitat: info.unitat,
+          valor: ultima.valor,
+          dataLectura: ultima.data,
+        });
+      }
     }
+    return { lectures, mock: false };
+  } catch (err) {
+    console.error("Error consultant lectures de Meteocat, es mostren dades d'exemple:", err);
+    return {
+      lectures: mockLectures(codi),
+      mock: true,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
-  return lectures;
 }
