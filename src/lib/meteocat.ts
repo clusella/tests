@@ -196,3 +196,64 @@ export async function getUltimesLectures(codi: string): Promise<LecturesResult> 
     };
   }
 }
+
+export type Avis = {
+  comarca: string;
+  perill: string;
+  nivell: number;
+};
+
+export type AvisosResult = { avisos: Avis[]; mock: boolean; error?: string };
+
+const MOCK_AVISOS: Avis[] = [
+  { comarca: "Pallars Sobirà", perill: "Nevades", nivell: 1 },
+  { comarca: "Val d'Aran", perill: "Vent", nivell: 2 },
+];
+
+type AvisApi = Record<string, unknown>;
+
+// L'esquema exacte de /avisos/v1/vigents no s'ha pogut verificar directament
+// (documentació no accessible en desenvolupament), així que llegim els noms
+// de camp més probables i, si l'endpoint no respon com esperem, la funció
+// cau igualment a dades d'exemple sense trencar res.
+function textCamp(obj: AvisApi, claus: string[]): string | undefined {
+  for (const clau of claus) {
+    const valor = obj[clau];
+    if (typeof valor === "string") return valor;
+    if (valor && typeof valor === "object" && "nom" in valor) {
+      const nom = (valor as { nom?: unknown }).nom;
+      if (typeof nom === "string") return nom;
+    }
+  }
+  return undefined;
+}
+
+function numCamp(obj: AvisApi, claus: string[]): number | undefined {
+  for (const clau of claus) {
+    const valor = obj[clau];
+    if (typeof valor === "number") return valor;
+  }
+  return undefined;
+}
+
+export async function getAvisosVigents(): Promise<AvisosResult> {
+  if (!hasApiKey()) {
+    return { avisos: MOCK_AVISOS, mock: true };
+  }
+  try {
+    const data = await meteocatFetch<AvisApi[]>("/avisos/v1/vigents", 60 * 15);
+    const avisos: Avis[] = data.map((item) => ({
+      comarca: textCamp(item, ["comarca", "nomComarca", "zona"]) ?? "Comarca desconeguda",
+      perill: textCamp(item, ["perill", "tipus", "fenomen"]) ?? "Avís",
+      nivell: numCamp(item, ["nivell", "grau", "nivellPerill"]) ?? 1,
+    }));
+    return { avisos, mock: false };
+  } catch (err) {
+    console.error("Error consultant avisos de Meteocat, es mostren dades d'exemple:", err);
+    return {
+      avisos: MOCK_AVISOS,
+      mock: true,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}

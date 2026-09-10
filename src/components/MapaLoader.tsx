@@ -1,8 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { Estacio } from "@/lib/meteocat";
+import type { Estacio, Avis } from "@/lib/meteocat";
 import type { Satelit } from "@/lib/n2yo";
+import type { Avio } from "@/lib/opensky";
 
 const Mapa = dynamic(() => import("@/components/Mapa"), {
   ssr: false,
@@ -13,6 +14,11 @@ const Mapa = dynamic(() => import("@/components/Mapa"), {
   ),
 });
 
-export default function MapaLoader(props: { estacions: Estacio[]; satelits: Satelit[] }) {
+export default function MapaLoader(props: {
+  estacions: Estacio[];
+  satelits: Satelit[];
+  avions: Avio[];
+  avisos: Avis[];
+}) {
   return <Mapa {...props} />;
 }

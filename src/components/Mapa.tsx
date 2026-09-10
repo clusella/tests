@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { Estacio } from "@/lib/meteocat";
+import type { Estacio, Avis } from "@/lib/meteocat";
 import type { Satelit } from "@/lib/n2yo";
+import type { Avio } from "@/lib/opensky";
 
 const CENTRE_CATALUNYA: [number, number] = [41.82, 1.86];
 
@@ -21,15 +22,26 @@ function icona(color: string) {
 
 const ICONA_ESTACIO = icona("#2563eb");
 const ICONA_SATELIT = icona("#9333ea");
+const ICONA_AVIO = icona("#ea580c");
+
+const COLOR_NIVELL: Record<number, string> = {
+  1: "bg-yellow-400",
+  2: "bg-orange-500",
+  3: "bg-red-600",
+};
 
 type Props = {
   estacions: Estacio[];
   satelits: Satelit[];
+  avions: Avio[];
+  avisos: Avis[];
 };
 
-export default function Mapa({ estacions, satelits }: Props) {
+export default function Mapa({ estacions, satelits, avions, avisos }: Props) {
   const [mostrarEstacions, setMostrarEstacions] = useState(true);
   const [mostrarSatelits, setMostrarSatelits] = useState(true);
+  const [mostrarAvions, setMostrarAvions] = useState(true);
+  const [mostrarAvisos, setMostrarAvisos] = useState(true);
   const [comarca, setComarca] = useState("Totes");
 
   const comarques = useMemo(
@@ -64,6 +76,24 @@ export default function Mapa({ estacions, satelits }: Props) {
           Satèl·lits
         </label>
         <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={mostrarAvions}
+            onChange={(e) => setMostrarAvions(e.target.checked)}
+          />
+          <span className="inline-block h-3 w-3 rounded-full bg-[#ea580c]" />
+          Avions
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={mostrarAvisos}
+            onChange={(e) => setMostrarAvisos(e.target.checked)}
+          />
+          <span className="inline-block h-3 w-3 rounded-full bg-yellow-400" />
+          Avisos meteorològics
+        </label>
+        <label className="flex items-center gap-2">
           Comarca:
           <select
             value={comarca}
@@ -78,6 +108,21 @@ export default function Mapa({ estacions, satelits }: Props) {
           </select>
         </label>
       </div>
+
+      {mostrarAvisos && avisos.length > 0 && (
+        <ul className="mb-4 flex flex-wrap gap-2">
+          {avisos.map((avis, i) => (
+            <li
+              key={`${avis.comarca}-${i}`}
+              className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              <span className={`inline-block h-2 w-2 rounded-full ${COLOR_NIVELL[avis.nivell] ?? "bg-yellow-400"}`} />
+              <strong>{avis.comarca}</strong>
+              <span className="text-zinc-500 dark:text-zinc-400">{avis.perill}</span>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="h-[70vh] w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
         <MapContainer center={CENTRE_CATALUNYA} zoom={8} className="h-full w-full">
@@ -112,6 +157,19 @@ export default function Mapa({ estacions, satelits }: Props) {
                   <strong>{satelit.nom}</strong>
                   <br />
                   Altitud: {satelit.altitud.toFixed(0)} km
+                </Popup>
+              </Marker>
+            ))}
+          {mostrarAvions &&
+            avions.map((avio) => (
+              <Marker key={avio.icao24} position={[avio.latitud, avio.longitud]} icon={ICONA_AVIO}>
+                <Popup>
+                  <strong>{avio.indicatiu}</strong>
+                  <br />
+                  {avio.paisOrigen}
+                  <br />
+                  {avio.altitud != null && `Altitud: ${Math.round(avio.altitud)} m`}
+                  {avio.velocitat != null && ` · ${Math.round(avio.velocitat * 3.6)} km/h`}
                 </Popup>
               </Marker>
             ))}
