@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description: "Portal de dades meteorològiques públiques de Catalunya (Meteocat)",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="ca"
