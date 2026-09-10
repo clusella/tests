@@ -14,12 +14,14 @@ export default async function Home() {
           <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
             Temps a Catalunya
           </h1>
-          <Link
-            href="/satelits"
-            className="text-sm font-medium text-zinc-600 hover:underline dark:text-zinc-400"
-          >
-            Satèl·lits →
-          </Link>
+          <div className="flex gap-4 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+            <Link href="/mapa" className="hover:underline">
+              Mapa →
+            </Link>
+            <Link href="/satelits" className="hover:underline">
+              Satèl·lits →
+            </Link>
+          </div>
         </div>
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">
           Dades de les estacions meteorològiques de la XEMA (Meteocat).
